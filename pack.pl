@@ -7,5 +7,5 @@ keywords([
   'Semantic Web'
 ]).
 name('LOD-Seeder').
-title('LOD Seeder: A simple client-side seeded that sends seeds to the LOD-Seedlist server.').
+title('LOD Seeder: A simple client that sends seeds to the LOD-Seedlist server.').
 version('0.0.0').

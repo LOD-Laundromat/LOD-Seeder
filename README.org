@@ -1,2 +1,4 @@
 #+TITLE: LOD-Seeder
 #+AUTHOR: Wouter Beek
+
+A simple client that sends seeds to the LOD-Seedlist server.
