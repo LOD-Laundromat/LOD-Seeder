@@ -1,9 +1,10 @@
 :- module(
   ll_seeder,
   [
-    add_seed/1, % +Seed
-    add_url/1,  % +Url
-    seed/1      % -Seed
+    add_seed/1,    % +Seed
+    add_url/1,     % +Url
+    delete_seed/1, % +Hash
+    seed/1         % -Seed
   ]
 ).
 
@@ -51,9 +52,7 @@
 %     * url(atom)
 
 add_seed(Seed) :-
-  maplist(setting, [scheme,authority], [Scheme,Auth]),
-  uri_comps(Uri, uri(Scheme,Auth,[seed],_,_)),
-  http_open2(Uri, In, [post(json(Seed)),success(201)]),
+  request_([seed], _, [post(json(Seed)),success(201)], In),
   close(In).
 
 
@@ -65,12 +64,18 @@ add_url(Url) :-
 
 
 
+%! delete_seed(+Hash:atom) is det.
+
+delete_seed(Hash) :-
+  request_([seed], [hash(Hash)], [failure(404),method(delete)], In),
+  close(In).
+
+
+
 %! seed(-Seed:dict) is nondet.
 
 seed(Seed) :-
-  maplist(setting, [scheme,authority], [Scheme,Auth]),
-  uri_comps(Uri, uri(Scheme,Auth,[seed],_,_)),
-  http_open2(Uri, In, [accept(json)]),
+  request_([seed], _, [], In),
   call_cleanup(
     (
       json_read_dict(In, Seeds),
@@ -85,8 +90,20 @@ seed(Seed) :-
 
 % INITIALIZATION %
 
+%! init_seeder is det.
+
 init_seeder :-
   conf_json(Conf1),
   _{seedlist: Conf2} :< Conf1,
   _{authority: Authority, scheme: Scheme} :< Conf2,
   maplist(set_setting, [scheme,authority], [Scheme,Authority]).
+
+
+
+%! request_(+Segments:list(atom), ?Query:list(compound),
+%!          +Options:list(compound), -In:stream) is semidet.
+
+request_(Segments, Query, Options, In) :-
+  maplist(setting, [scheme,authority], [Scheme,Auth]),
+  uri_comps(Uri, uri(Scheme,Auth,Segments,Query,_)),
+  http_open2(Uri, In, [accept(json)|Options]).
