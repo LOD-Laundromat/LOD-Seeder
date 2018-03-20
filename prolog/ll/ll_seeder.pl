@@ -78,7 +78,7 @@ seed(Seed) :-
   request_([seed], _, [], In),
   call_cleanup(
     (
-      json_read_dict(In, Seeds),
+      json_read_dict(In, Seeds, [value_string_as(atom)]),
       member(Seed, Seeds)
     ),
     close(In)
