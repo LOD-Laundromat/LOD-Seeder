@@ -1,8 +1,9 @@
 :- module(
   ll_seeder,
   [
-    upload_seed/1, % +Seed
-    upload_url/1   % +Url
+    add_seed/1, % +Seed
+    add_url/1,  % +Url
+    seed/1      % -Seed
   ]
 ).
 
@@ -13,6 +14,8 @@
 */
 
 :- use_module(library(apply)).
+:- use_module(library(http/json)).
+:- use_module(library(lists)).
 :- use_module(library(settings)).
 
 :- use_module(library(conf_ext)).
@@ -23,38 +26,58 @@
 :- initialization
    init_seeder.
 
-:- setting(authority, any, _, "URI scheme of the seedlist server location.").
-:- setting(scheme, any, _, "URI scheme of the seedlist server location.").
+:- setting(authority, any, _,
+           "URI scheme of the seedlist server location.").
+:- setting(scheme, oneof([http,https]), https,
+           "URI scheme of the seedlist server location.").
 
 
 
 
 
-%! upload_seed(+Seed:dict) is det.
+%! add_seed(+Seed:dict) is det.
 %
 % Keys:
-%   * description(string)
+%   * dataset(dict)
+%     * description(string)
+%     * image(atom)
+%     * license(atom)
+%     * name(atom)
+%     * url(atom)
 %   * documents(list(atom))
-%   * image(atom)
-%   * license(atom)
-%   * name(atom)
 %   * organization(dict)
 %     * name(atom)
 %     * image(atom)
-%   * url(atom)
+%     * url(atom)
 
-upload_seed(Seed) :-
+add_seed(Seed) :-
   maplist(setting, [scheme,authority], [Scheme,Auth]),
-  uri_comps(Uri, uri(Scheme,Auth,[],_,_)),
-  http_open2(Uri, In, [post(json(Seed)),succeed(201)]),
+  uri_comps(Uri, uri(Scheme,Auth,[seed],_,_)),
+  http_open2(Uri, In, [post(json(Seed)),success(201)]),
   close(In).
 
 
 
-%! upload_url(+Url:atom) is det.
+%! add_url(+Url:atom) is det.
 
-upload_url(Url) :-
-  upload_seed(_{documents: [Url], name: Url, url: Url}).
+add_url(Url) :-
+  add_seed(_{dataset: _{name: Url, url: Url}, documents: [Url]}).
+
+
+
+%! seed(-Seed:dict) is nondet.
+
+seed(Seed) :-
+  maplist(setting, [scheme,authority], [Scheme,Auth]),
+  uri_comps(Uri, uri(Scheme,Auth,[seed],_,_)),
+  http_open2(Uri, In, [accept(json)]),
+  call_cleanup(
+    (
+      json_read_dict(In, Seeds),
+      member(Seed, Seeds)
+    ),
+    close(In)
+  ).
 
 
 
