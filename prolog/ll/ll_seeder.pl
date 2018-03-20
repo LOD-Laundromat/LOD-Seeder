@@ -63,7 +63,7 @@ upload_url(Url) :-
 % INITIALIZATION %
 
 init_seeder :-
-  conf_json(Conf),
-  _{server: ServerConf} :< Conf,
-  _{scheme: Scheme, authority: Authority} :< ServerConf,
+  conf_json(Conf1),
+  _{seedlist: Conf2} :< Conf1,
+  _{authority: Authority, scheme: Scheme} :< Conf2,
   maplist(set_setting, [scheme,authority], [Scheme,Authority]).

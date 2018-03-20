@@ -1,5 +1,6 @@
 {
-  "server": {
-    "url": "http://lod.labs.vu.nl:4004/"
+  "seedlist": {
+    "authority": "AUTHORITY",
+    "scheme": "SCHEME"
   }
 }
