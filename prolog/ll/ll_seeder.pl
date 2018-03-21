@@ -27,6 +27,9 @@
 :- initialization
    init_seeder.
 
+:- meta_predicate
+    request_(+, +, 1, +).
+
 :- setting(authority, any, _,
            "URI scheme of the seedlist server location.").
 :- setting(scheme, oneof([http,https]), https,
@@ -52,8 +55,7 @@
 %     * url(atom)
 
 add_seed(Seed) :-
-  request_([seed], _, [post(json(Seed)),success(201)], In),
-  close(In).
+  request_([seed], _, close, [post(json(Seed)),success(201)]).
 
 
 
@@ -67,15 +69,16 @@ add_url(Url) :-
 %! delete_seed(+Hash:atom) is det.
 
 delete_seed(Hash) :-
-  request_([seed], [hash(Hash)], [failure(404),method(delete)], In),
-  close(In).
+  request_([seed], [hash(Hash)], close, [failure(404),method(delete)]).
 
 
 
 %! seed(-Seed:dict) is nondet.
 
 seed(Seed) :-
-  request_([seed], _, [], In),
+  request_([seed], _, seed_(Seed), []).
+
+seed_(Seed, In) :-
   call_cleanup(
     (
       json_read_dict(In, Seeds, [value_string_as(atom)]),
@@ -100,10 +103,10 @@ init_seeder :-
 
 
 
-%! request_(+Segments:list(atom), ?Query:list(compound),
-%!          +Options:list(compound), -In:stream) is semidet.
+%! request_(+Segments:list(atom), ?Query:list(compound), :Goal_1,
+%!          +Options:list(compound)) is semidet.
 
-request_(Segments, Query, Options, In) :-
+request_(Segments, Query, Goal_1, Options) :-
   maplist(setting, [scheme,authority], [Scheme,Auth]),
   uri_comps(Uri, uri(Scheme,Auth,Segments,Query,_)),
-  http_open2(Uri, In, [accept(json)|Options]).
+  http_call(Uri, Goal_1, [accept(json)|Options]).
