@@ -55,7 +55,13 @@
 %     * url(atom)
 
 add_seed(Seed) :-
-  request_([seed], _, close, [post(json(Seed)),success(201)]).
+  catch(request_([seed], _, close, [post(json(Seed)),success(201)]), E, true),
+  (   var(E)
+  ->  true
+  ;   E = error(http_status(200,_),_)
+  ->  print_message(informational, seed_already_exists)
+  ;   throw(E)
+  ).
 
 
 
