@@ -261,8 +261,9 @@ ckan_media_type_(media(video/'x-msvideo',_)).
 :- use_module(library(thread_ext)).
 
 :- dynamic
-    ckan_unknown_format/3,
-    ckan_unknown_media_type/3.
+    ckan_site__/1,
+    ckan_unknown_format__/3,
+    ckan_unknown_media_type__/3.
 
 run(NumThreads) :-
   thread_monitor,
@@ -279,13 +280,14 @@ ckan_add_seed(Site, Package) :-
   Url{name: DName, resources: Resources} :< Package,
   maplist(ckan_resource_url, Resources, Urls),
   % organization
-  ckan_organization(Site, Package, Org),
+  Org1 = _{url: Site},
+  ckan_organization(Package, Org1, Org2),
   % description
   Dataset1 = _{name: DName, url: Url},
   ckan_description(Package, Dataset1, Dataset2),
   % license
   ckan_license(Package, Dataset2, Dataset3),
-  add_seed(_{dataset: Dataset3, documents: Urls, organization: Org}).
+  add_seed(_{dataset: Dataset3, documents: Urls, organization: Org2}).
 
 ckan_description(Package, Dataset1, Dataset2) :-
   _{notes: Desc0} :< Package,
@@ -299,16 +301,16 @@ ckan_license(Package, Dataset1, Dataset2) :-
   Dataset2 = Dataset1.put(_{license: License}).
 ckan_license(_, Dataset, Dataset).
 
-ckan_organization(Site, Package, Org) :-
-  is_dict(Package.organization), !,
+ckan_organization(Package, Org1, Org2) :-
+  is_dict(Package.organization),
   % name
-  _{name: OName} :< Package.organization,
+  _{name: OName} :< Package.organization, !,
   % image
   (   _{image_url: Url} :< Package.organization
-  ->  Org = _{image: Url, name: OName, url: Site}
-  ;   Org = _{name: OName, url: Site}
+  ->  Org2 = Org1.put(_{image: Url, name: OName})
+  ;   Org2 = Org1.put(_{name: OName})
   ).
-ckan_organization(Site, _, _{name: Site, url: Site}).
+ckan_organization(_, Org, Org).
 
 ckan_resource_url(Resource, Url) :-
   _{url: Url} :< Resource.
@@ -319,16 +321,11 @@ ckan_resource_url(Resource, Url) :-
 %! ckan_print_report(-Site:atom) is nondet.
 
 ckan_print_report(Site) :-
-  (var(Site) -> distinct(Site, ckan_site_(Site)) ; true),
+  ckan_site__(Site),
   maplist(
     ckan_print_report(Site),
-    [ckan_unknown_format,ckan_unknown_media_type]
+    [ckan_unknown_format__,ckan_unknown_media_type__]
   ).
-
-ckan_site_(Site) :-
-  ckan_unknown_format(Site, _, _).
-ckan_site_(Site) :-
-  ckan_unknown_media_type(Site, _, _).
 
 ckan_print_report(Site, Pred) :-
   Goal_0 =.. [Pred,Site,Format,N],
@@ -374,6 +371,8 @@ ckan_scrape_resource(Package, Resource, MediaTypes) :-
 %! ckan_scrape_site(-Site:atom) is nondet.
 
 ckan_scrape_site(Site) :-
+  % Store the visited CKAN sites locally for report printing.
+  (ckan_site__(Site) -> true ; assertz(ckan_site__(Site))),
   (var(Site) -> ckan_site_uri(Site) ; true),
   thread_create(ckan_scrape_site_(Site), Id, [alias(Site)]),
   thread_join(Id, Status),
@@ -410,12 +409,12 @@ clean_media_type(Format1, MediaType) :-
       ->  true
       ;   % The CKAN supplied Media Type cannot be mapped onto a known
           % Media Type.
-          assertz(ckan_unknown_media_type(Format3)),
+          assertz(ckan_unknown_media_type__(Format3)),
           fail
       )
   ;   ckan_known_format(Format3, MediaType)
   ->  true
-  ;   assertz(ckan_unknown_format(Format3)),
+  ;   assertz(ckan_unknown_format__(Format3)),
       fail
   ).
 
