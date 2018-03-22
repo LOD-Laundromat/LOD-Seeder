@@ -1,6 +1,10 @@
 {
-  "seedlist": {
+  "location": {
     "authority": "AUTHORITY",
     "scheme": "SCHEME"
+  },
+  "login": {
+    "password": "PASSWORD",
+    "user": "USER"
   }
 }

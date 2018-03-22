@@ -32,8 +32,10 @@
 
 :- setting(authority, any, _,
            "URI scheme of the seedlist server location.").
+:- setting(password, any, _, "").
 :- setting(scheme, oneof([http,https]), https,
            "URI scheme of the seedlist server location.").
+:- setting(user, any, _, "").
 
 
 
@@ -97,17 +99,7 @@ seed_(Seed, In) :-
 
 
 
-% INITIALIZATION %
-
-%! init_seeder is det.
-
-init_seeder :-
-  conf_json(Conf1),
-  _{seedlist: Conf2} :< Conf1,
-  _{authority: Authority, scheme: Scheme} :< Conf2,
-  maplist(set_setting, [scheme,authority], [Scheme,Authority]).
-
-
+% GENERICS %
 
 %! request_(+Segments:list(atom), ?Query:list(compound), :Goal_1,
 %!          +Options:list(compound)) is semidet.
@@ -115,4 +107,28 @@ init_seeder :-
 request_(Segments, Query, Goal_1, Options) :-
   maplist(setting, [scheme,authority], [Scheme,Auth]),
   uri_comps(Uri, uri(Scheme,Auth,Segments,Query,_)),
-  http_call(Uri, Goal_1, [accept(json)|Options]).
+  maplist(setting, [password,user], [Password,User]),
+  http_call(
+    Uri,
+    Goal_1,
+    [accept(json),authorization(basic(User,Password))|Options]
+  ).
+
+
+
+
+
+% INITIALIZATION %
+
+%! init_seeder is det.
+
+init_seeder :-
+  conf_json(Conf),
+  % location
+  _{location: Location} :< Conf,
+  _{authority: Authority, scheme: Scheme} :< Location,
+  maplist(set_setting, [scheme,authority], [Scheme,Authority]),
+  % login
+  _{login: Login} :< Conf,
+  _{password: Password, user: User} :< Login,
+  maplist(set_setting, [password,user], [Password,User]).
