@@ -1,2 +1,2 @@
 #!/bin/bash
-swipl run.pl -- --conf=conf.json
+swipl script/ckan_seeder.pl -- --conf=conf.json
