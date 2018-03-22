@@ -3,7 +3,7 @@
   [
     ckan_print_report/1, % ?Site
     ckan_scrape_site/1,  % ?Site
-    run/1                % +NumThreads
+    ckan_scrape_sites/1  % +NumThreads
   ]
 ).
 
@@ -253,6 +253,7 @@ ckan_media_type_(media(video/'x-msvideo',_)).
 :- use_module(library(yall)).
 
 :- use_module(library(atom_ext)).
+:- use_module(library(counter)).
 :- use_module(library(dcg)).
 :- use_module(library(file_ext)).
 :- use_module(library(http/ckan_api)).
@@ -261,14 +262,7 @@ ckan_media_type_(media(video/'x-msvideo',_)).
 :- use_module(library(thread_ext)).
 
 :- dynamic
-    ckan_site__/1,
-    ckan_unknown_format__/3,
-    ckan_unknown_media_type__/3.
-
-run(NumThreads) :-
-  thread_monitor,
-  aggregate_all(set(Site), ckan_site_uri(Site), Sites),
-  threaded_maplist(NumThreads, ckan_scrape_site, Sites).
+    ckan_site__/1.
 
 
 
@@ -328,10 +322,11 @@ ckan_print_report(Site) :-
   ).
 
 ckan_print_report(Site, Pred) :-
-  Goal_0 =.. [Pred,Site,Format,N],
-  findall(N-Format, Goal_0, Pairs1),
+  Name =.. [Pred,Site,Format],
+  findall(N-Format, counter(Name, N), Pairs1),
   sort(1, @>=, Pairs1, Pairs2),
-  maplist([N-Format]>>format("~D\t~a\n", [N,Format]), Pairs2).
+  format("~a:\n", [Site]),
+  maplist([N-Format]>>format("  ~D\t~a\n", [N,Format]), Pairs2).
 
 
 
@@ -340,7 +335,7 @@ ckan_print_report(Site, Pred) :-
 ckan_scrape_package(Site, Package) :-
   ckan_package(Site, Package),
   (   % The dataset contains at least one RDF document.
-      ckan_scrape_resource(Package, _, MediaTypes),
+      ckan_scrape_resource(Site, Package, _, MediaTypes),
       member(MediaType, MediaTypes),
       rdf_media_type_(MediaType)
   ->  format("✓")
@@ -350,9 +345,10 @@ ckan_scrape_package(Site, Package) :-
 
 
 
-%! ckan_scrape_resource(+Package:dict, -Resource:dict, -MediaTypes:list(compound)) is multi.
+%! ckan_scrape_resource(+Site:atom, +Package:dict, -Resource:dict,
+%!                      -MediaTypes:list(compound)) is multi.
 
-ckan_scrape_resource(Package, Resource, MediaTypes) :-
+ckan_scrape_resource(Site, Package, Resource, MediaTypes) :-
   _{resources: Resources} :< Package,
   member(Resource, Resources),
   _{format: Format1, mimetype: Format2} :< Resource,
@@ -360,7 +356,7 @@ ckan_scrape_resource(Package, Resource, MediaTypes) :-
     set(MediaType),
     (
       member(Format, [Format1,Format2]),
-      clean_media_type(Format, MediaType)
+      clean_media_type(Site, Format, MediaType)
     ),
     MediaTypes
   ).
@@ -371,9 +367,10 @@ ckan_scrape_resource(Package, Resource, MediaTypes) :-
 %! ckan_scrape_site(-Site:atom) is nondet.
 
 ckan_scrape_site(Site) :-
+  % Ensure that Site is instantiated.
+  (var(Site) -> ckan_site_uri(Site) ; true),
   % Store the visited CKAN sites locally for report printing.
   (ckan_site__(Site) -> true ; assertz(ckan_site__(Site))),
-  (var(Site) -> ckan_site_uri(Site) ; true),
   thread_create(ckan_scrape_site_(Site), Id, [alias(Site)]),
   thread_join(Id, Status),
   (   Status == true
@@ -396,9 +393,22 @@ rdf_media_type_(media(text/turtle,[])).
 
 
 
+%! ckan_scrape_sites(+NumThreads:nonneg) is det.
+
+ckan_scrape_sites(NumThreads) :-
+  thread_monitor,
+  aggregate_all(set(Site), ckan_site_uri(Site), Sites),
+  threaded_maplist(NumThreads, ckan_scrape_site, Sites).
+
+
+
+
+
 % CLEANUP CODE %
 
-clean_media_type(Format1, MediaType) :-
+%! clean_media_type(+Site:atom, +Format:atom, -MediaType:compound) is semidet.
+
+clean_media_type(Site, Format1, MediaType) :-
   downcase_atom(Format1, Format2),
   atom_strip(Format2, Format3),
   \+ memberchk(Format3, ['',null]),
@@ -409,12 +419,12 @@ clean_media_type(Format1, MediaType) :-
       ->  true
       ;   % The CKAN supplied Media Type cannot be mapped onto a known
           % Media Type.
-          assertz(ckan_unknown_media_type__(Format3)),
+          increment_counter(ckan_unknown_media_type__(Site,Format3)),
           fail
       )
   ;   ckan_known_format(Format3, MediaType)
   ->  true
-  ;   assertz(ckan_unknown_format__(Format3)),
+  ;   increment_counter(ckan_unknown_format__(Site,Format3)),
       fail
   ).
 
