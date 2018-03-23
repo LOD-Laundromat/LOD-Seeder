@@ -124,11 +124,15 @@ request_(Segments, Query, Goal_1, Options) :-
 
 init_seeder :-
   conf_json(Conf),
-  % location
-  _{location: Location} :< Conf,
-  _{authority: Authority, scheme: Scheme} :< Location,
-  maplist(set_setting, [scheme,authority], [Scheme,Authority]),
-  % login
-  _{login: Login} :< Conf,
-  _{password: Password, user: User} :< Login,
-  maplist(set_setting, [password,user], [Password,User]).
+  % seedlist
+  _{
+    authority: Auth,
+    password: Password,
+    scheme: Scheme,
+    user: User
+  } :< Conf.seedlist,
+  maplist(
+    set_setting,
+    [authority,password,scheme,user],
+    [Auth,Password,Scheme,User]
+  ).
