@@ -145,7 +145,7 @@ seed_(Seed, In) :-
   call_cleanup(
     (
       json_read_dict(In, Seeds, [value_string_as(atom)]),
-      member(Seed, Seeds)
+      (is_list(Seeds) -> member(Seed, Seeds) ; Seed = Seeds)
     ),
     close(In)
   ).
