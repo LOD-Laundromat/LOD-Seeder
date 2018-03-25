@@ -323,9 +323,9 @@ ckan_package_last_modified(Package, LMod) :-
   _{resources: Resources} :< Package,
   aggregate_all(
     min(LMod),
-    (
-      member(Resource, Resources),
-      ckan_resource_last_modified(Resource, LMod)
+    (   member(Resource, Resources),
+        ckan_resource_last_modified(Resource, LMod)
+    ;   LMod = 0.0
     ),
     LMod
   ).
@@ -414,22 +414,21 @@ ckan_scrape_package(Site, LMod, Package) :-
 
 
 
-%! ckan_resource_last_modified(+Resource:dict, -LMod:float) is det.
+%! ckan_resource_last_modified(+Resource:dict, -LMod:float) is semidet.
 
 ckan_resource_last_modified(Resource, LMod) :-
+  catch(ckan_resource_last_modified_(Resource, LMod), _, fail).
+
+ckan_resource_last_modified_(Resource, LMod) :-
   get_dict(last_modified, Resource, Str),
   Str \== null,
   parse_time(Str, iso_8601, LMod), !.
-ckan_resource_last_modified(Resource, LMod) :-
+ckan_resource_last_modified_(Resource, LMod) :-
   _{created: Str} :< Resource,
   parse_time(Str, iso_8601, LMod), !.
-ckan_resource_last_modified(Resource, LMod) :-
+ckan_resource_last_modified_(Resource, LMod) :-
   _{url: Url} :< Resource,
-  (   http_metadata_last_modified(Url, LMod)
-  ->  true
-  ;   existence_error(last_modified, Url),
-      LMod = 0.0
-  ).
+  http_metadata_last_modified(Url, LMod).
 
 
 
