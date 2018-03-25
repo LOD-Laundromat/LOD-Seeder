@@ -376,8 +376,10 @@ ckan_scrape_package(Site, LMod, Package) :-
       member(MediaType, MediaTypes),
       rdf_media_type_(MediaType)
   ->  ckan_package_last_modified(Package, LMod),
-      format("✓")
+      format("✓"),
+      flush_output(user_output)
   ;   format("❌"),
+      flush_output(user_output),
       fail
   ).
 
