@@ -1,7 +1,6 @@
 :- module(
   ckan_seeder,
   [
-    ckan_print_report/1, % ?Site
     ckan_scrape_site/1,  % ?Site
     ckan_scrape_sites/1  % +NumThreads
   ]
@@ -247,6 +246,8 @@ ckan_media_type_(media(video/'x-msvideo',_)).
 
 :- use_module(library(aggregate)).
 :- use_module(library(apply)).
+:- use_module(library(error)).
+:- use_module(library(filesex)).
 :- use_module(library(lists)).
 :- use_module(library(yall)).
 
@@ -353,17 +354,44 @@ ckan_package_media_types(Site, Package, Resource, MediaTypes) :-
 
 ckan_print_report(Site) :-
   ckan_site__(Site),
-  maplist(
-    ckan_print_report(Site),
-    [ckan_unknown_format__,ckan_unknown_media_type__]
-  ).
+  setting(ll_seeder:data_directory, Dir),
+  atom_phrase(file_name_, Site, Name),
+  directory_file_path(Dir, Name, Base),
+  file_name_extension(Base, pl, File),
+  setup_call_cleanup(
+    open(File, write, Out),
+    (
+      findall(
+        N-Format,
+        retract_counter(ckan_unknown_format__(Site,Format), N),
+        Pairs1
+      ),
+      forall(
+        member(N-Format, Pairs1),
+        format(Out, "~W\n", [format(Format,N),[quoted(true)]])
+      ),
+      findall(
+        N-MediaType,
+        retract_counter(ckan_unknown_media_type__(Site,MediaType), N),
+        Pairs2
+      ),
+      forall(
+        member(N-MediaType, Pairs2),
+        format(Out, "~W\n", [format(MediaType,N),[quoted(true)]])
+      )
+    ),
+    close(Out)
+  ),
+  retractall(ckan_site__(Site)).
 
-ckan_print_report(Site, Pred) :-
-  Name =.. [Pred,Site,Format],
-  findall(N-Format, counter(Name, N), Pairs1),
-  sort(1, @>=, Pairs1, Pairs2),
-  format("~a:\n", [Site]),
-  maplist([N-Format]>>format("  ~D\t~a\n", [N,Format]), Pairs2).
+file_name_, [Code] -->
+  [Code],
+  {code_type(Code, alnum)}, !,
+  file_name_.
+file_name_, "-" -->
+  [_], !,
+  file_name_.
+file_name_--> "".
 
 
 
