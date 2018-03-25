@@ -10,6 +10,20 @@
 
 /** <module> LOD Laundromat seeder
 
+  * dataset(dict)
+    * description(string)
+    * image(atom)
+    * license(atom)
+    * name(atom)
+    * url(atom)
+  * documents(list(atom))
+  * hash(atom)
+  * organization(dict)
+    * description(string)
+    * name(atom)
+    * image(atom)
+    * url(atom)
+
 @author Wouter Beek
 @version 2018
 */
@@ -21,6 +35,7 @@
 
 :- use_module(library(conf_ext)).
 :- use_module(library(dcg)).
+:- use_module(library(file_ext)).
 :- use_module(library(http/http_client2)).
 :- use_module(library(uri_ext)).
 
@@ -32,6 +47,8 @@
 
 :- setting(authority, any, _,
            "URI scheme of the seedlist server location.").
+:- setting(data_directory, any, _,
+           "The directory where seeder reports are stored.").
 :- setting(password, any, _, "").
 :- setting(scheme, oneof([http,https]), https,
            "URI scheme of the seedlist server location.").
@@ -42,19 +59,6 @@
 
 
 %! add_seed(+Seed:dict) is det.
-%
-% Keys:
-%   * dataset(dict)
-%     * description(string)
-%     * image(atom)
-%     * license(atom)
-%     * name(atom)
-%     * url(atom)
-%   * documents(list(atom))
-%   * organization(dict)
-%     * name(atom)
-%     * image(atom)
-%     * url(atom)
 
 add_seed(Seed) :-
   catch(request_([seed], _, close, [post(json(Seed)),success(201)]), E, true),
@@ -124,6 +128,9 @@ request_(Segments, Query, Goal_1, Options) :-
 
 init_seeder :-
   conf_json(Conf),
+  % data directory
+  create_directory(Conf.'data-directory'),
+  set_setting(data_directory, Conf.'data-directory'),
   % seedlist
   _{
     authority: Auth,
