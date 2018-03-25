@@ -247,15 +247,12 @@ ckan_media_type_(media(video/'x-msvideo',_)).
 
 :- use_module(library(aggregate)).
 :- use_module(library(apply)).
-:- use_module(library(http/json)).
 :- use_module(library(lists)).
-:- use_module(library(solution_sequences)).
 :- use_module(library(yall)).
 
 :- use_module(library(atom_ext)).
 :- use_module(library(counter)).
 :- use_module(library(dcg)).
-:- use_module(library(file_ext)).
 :- use_module(library(http/ckan_api)).
 :- use_module(library(ll/ll_seeder)).
 :- use_module(library(media_type)).
@@ -268,9 +265,9 @@ ckan_media_type_(media(video/'x-msvideo',_)).
 
 
 
-%! ckan_add_seed(+Site:atom, +Package:dict) is det.
+%! ckan_add_seed(+Site:atom, +LMod:float, +Package:dict) is det.
 
-ckan_add_seed(Site, Package) :-
+ckan_add_seed(Site, LMod, Package) :-
   Url{name: DName, resources: Resources} :< Package,
   maplist(ckan_resource_url, Resources, Urls),
   % organization
@@ -281,7 +278,14 @@ ckan_add_seed(Site, Package) :-
   ckan_description(Package, Dataset1, Dataset2),
   % license
   ckan_license(Package, Dataset2, Dataset3),
-  add_seed(_{dataset: Dataset3, documents: Urls, organization: Org2}).
+  add_seed(
+    _{
+      dataset: Dataset3,
+      documents: Urls,
+      'last-modified': LMod,
+      organization: Org2
+    }
+  ).
 
 ckan_description(Package, Dataset1, Dataset2) :-
   _{notes: Desc0} :< Package,
@@ -311,6 +315,39 @@ ckan_resource_url(Resource, Url) :-
 
 
 
+%! ckan_package_last_modified(+Package:dict, -LMod:float) is det.
+
+ckan_package_last_modified(Package, LMod) :-
+  _{resources: Resources} :< Package,
+  aggregate_all(
+    min(LMod),
+    (
+      member(Resource, Resources),
+      ckan_resource_last_modified(Resource, LMod)
+    ),
+    LMod
+  ).
+
+
+
+%! ckan_package_media_types(+Site:atom, +Package:dict, -Resource:dict,
+%!                          -MediaTypes:list(compound)) is multi.
+
+ckan_package_media_types(Site, Package, Resource, MediaTypes) :-
+  _{resources: Resources} :< Package,
+  aggregate_all(
+    set(MediaType),
+    (
+      member(Resource, Resources),
+      _{format: Format1, mimetype: Format2} :< Resource,
+      member(Format, [Format1,Format2]),
+      clean_media_type(Site, Format, MediaType)
+    ),
+    MediaTypes
+  ).
+
+
+
 %! ckan_print_report(+Site:atom) is det.
 %! ckan_print_report(-Site:atom) is nondet.
 
@@ -330,36 +367,31 @@ ckan_print_report(Site, Pred) :-
 
 
 
-%! ckan_scrape_package(+Site:atom, -Package:dict) is nondet.
+%! ckan_scrape_package(+Site:atom, -LMod:float, -Package:dict) is nondet.
 
-ckan_scrape_package(Site, Package) :-
+ckan_scrape_package(Site, LMod, Package) :-
   ckan_package(Site, Package),
   (   % The dataset contains at least one RDF document.
-      ckan_scrape_resource(Site, Package, _, MediaTypes),
+      ckan_package_media_types(Site, Package, _, MediaTypes),
       member(MediaType, MediaTypes),
       rdf_media_type_(MediaType)
-  ->  format("✓")
+  ->  ckan_package_last_modified(Package, LMod),
+      format("✓")
   ;   format("❌"),
       fail
   ).
 
 
 
-%! ckan_scrape_resource(+Site:atom, +Package:dict, -Resource:dict,
-%!                      -MediaTypes:list(compound)) is multi.
+%! ckan_resource_last_modified(+Resource:dict, -LMod:float) is det.
 
-ckan_scrape_resource(Site, Package, Resource, MediaTypes) :-
-  _{resources: Resources} :< Package,
-  member(Resource, Resources),
-  _{format: Format1, mimetype: Format2} :< Resource,
-  aggregate_all(
-    set(MediaType),
-    (
-      member(Format, [Format1,Format2]),
-      clean_media_type(Site, Format, MediaType)
-    ),
-    MediaTypes
-  ).
+ckan_resource_last_modified(Resource, LMod) :-
+  get_dict(last_modified, Resource, Str),
+  Str \== null,
+  parse_time(Str, iso_8601, LMod), !.
+ckan_resource_last_modified(Resource, LMod) :-
+  _{created: Str} :< Resource,
+  parse_time(Str, iso_8601, LMod).
 
 
 
@@ -381,8 +413,8 @@ ckan_scrape_site(Site) :-
 
 ckan_scrape_site_(Site) :-
   forall(
-    ckan_scrape_package(Site, Package),
-    ckan_add_seed(Site, Package)
+    ckan_scrape_package(Site, LMod, Package),
+    ckan_add_seed(Site, LMod, Package)
   ).
 
 rdf_media_type_(media(application/'n-quads',[])).
