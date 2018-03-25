@@ -255,6 +255,7 @@ ckan_media_type_(media(video/'x-msvideo',_)).
 :- use_module(library(counter)).
 :- use_module(library(dcg)).
 :- use_module(library(http/ckan_api)).
+:- use_module(library(http/http_client2)).
 :- use_module(library(ll/ll_seeder)).
 :- use_module(library(media_type)).
 :- use_module(library(thread_ext)).

@@ -1,10 +1,13 @@
 :- module(
   ll_seeder,
   [
-    add_seed/1,    % +Seed
-    add_url/1,     % +Url
-    delete_seed/1, % +Hash
-    seed/1         % -Seed
+    add_seed/1,        % +Seed
+    add_url/1,         % +Url
+    delete_seed/1,     % +Hash
+    end_seed/1,        % +Hash
+    processing_seed/1, % -Seed
+    seed/1,            % -Seed
+    start_seed/1       % -Seed
   ]
 ).
 
@@ -43,7 +46,7 @@
    init_seeder.
 
 :- meta_predicate
-    request_(+, +, 1, +).
+    seedlist_request_(+, +, 1, +).
 
 :- setting(authority, any, _,
            "URI scheme of the seedlist server location.").
@@ -61,7 +64,11 @@
 %! add_seed(+Seed:dict) is det.
 
 add_seed(Seed) :-
-  catch(request_([seed], _, close, [post(json(Seed)),success(201)]), E, true),
+  catch(
+    seedlist_request_([seed], _, close, [post(json(Seed)),success(201)]),
+    E,
+    true
+  ),
   (   var(E)
   ->  true
   ;   E = error(http_status(200,_),_)
@@ -81,14 +88,58 @@ add_url(Url) :-
 %! delete_seed(+Hash:atom) is det.
 
 delete_seed(Hash) :-
-  request_([seed], [hash(Hash)], close, [failure(404),method(delete)]).
+  seedlist_request_(
+    [seed],
+    [hash(Hash)],
+    close,
+    [failure(404),method(delete)]
+  ).
+
+
+
+%! end_seed(+Hash:atom) is det.
+
+end_seed(Hash) :-
+  seedlist_request_(
+    [seed,processing],
+    [hash(Hash)],
+    close,
+    [failure(404),method(patch)]
+  ).
 
 
 
 %! seed(-Seed:dict) is nondet.
 
 seed(Seed) :-
-  request_([seed], _, seed_(Seed), []).
+  seedlist_request_([seed], _, seed_(Seed), []).
+
+
+
+%! processing_seed(-Seed:dict) is nondet.
+
+processing_seed(Seed) :-
+  seedlist_request_([seed,processing], [], seed_(Seed), []).
+
+
+
+%! start_seed(-Seed:dict) is semidet.
+
+start_seed(Seed) :-
+  seedlist_request_(
+    [seed,stale],
+    [],
+    seed_(Seed),
+    [failure(404),method(patch)]
+  ).
+
+
+
+
+
+% GENERICS %
+
+%! seed_(-Seed:dict, +In:stream) is det.
 
 seed_(Seed, In) :-
   call_cleanup(
@@ -101,17 +152,16 @@ seed_(Seed, In) :-
 
 
 
+%! seedlist_request_(+Segments:list(atom), ?Query:list(compound), :Goal_1,
+%!                   +Options:list(compound)) is semidet.
 
-
-% GENERICS %
-
-%! request_(+Segments:list(atom), ?Query:list(compound), :Goal_1,
-%!          +Options:list(compound)) is semidet.
-
-request_(Segments, Query, Goal_1, Options) :-
-  maplist(setting, [scheme,authority], [Scheme,Auth]),
+seedlist_request_(Segments, Query, Goal_1, Options) :-
+  maplist(
+    setting,
+    [authority,password,scheme,user],
+    [Auth,Password,Scheme,User]
+  ),
   uri_comps(Uri, uri(Scheme,Auth,Segments,Query,_)),
-  maplist(setting, [password,user], [Password,User]),
   http_call(
     Uri,
     Goal_1,
