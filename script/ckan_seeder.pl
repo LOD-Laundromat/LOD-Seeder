@@ -430,9 +430,12 @@ rdf_media_type_(media(text/turtle,[])).
 %! ckan_scrape_sites(+NumThreads:nonneg) is det.
 
 ckan_scrape_sites(NumThreads) :-
-  thread_monitor,
   aggregate_all(set(Site), ckan_site_uri(Site), Sites),
-  threaded_maplist(NumThreads, ckan_scrape_site, Sites).
+  thread_create(
+    threaded_maplist(NumThreads, ckan_scrape_site, Sites),
+    _,
+    [detached(true)]
+  ).
 
 
 
