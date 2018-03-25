@@ -393,7 +393,14 @@ ckan_resource_last_modified(Resource, LMod) :-
   parse_time(Str, iso_8601, LMod), !.
 ckan_resource_last_modified(Resource, LMod) :-
   _{created: Str} :< Resource,
-  parse_time(Str, iso_8601, LMod).
+  parse_time(Str, iso_8601, LMod), !.
+ckan_resource_last_modified(Resource, LMod) :-
+  _{url: Url} :< Resource,
+  (   http_metadata_last_modified(Url, LMod)
+  ->  true
+  ;   existence_error(last_modified, Url),
+      LMod = 0.0
+  ).
 
 
 
