@@ -2,7 +2,6 @@
   ll_seeder,
   [
     add_seed/1,        % +Seed
-    add_url/1,         % +Url
     delete_seed/1,     % +Seed
     end_seed/1,        % +Seed
     processing_seed/1, % -Seed
@@ -16,16 +15,17 @@
   * dataset(dict)
     * description(string)
     * image(uri)
+    * 'last-modified'(float) REQUIRED
     * license(uri)
-    * name(atom)
+    * name(atom) REQUIRED
     * url(uri)
-  * documents(list(uri))
-  * hash(atom)
+  * documents(list(uri)) REQUIRED
   * organization(dict)
-    * description(string)
     * name(atom)
     * image(uri)
     * url(uri)
+
+---
 
 @author Wouter Beek
 @version 2018
@@ -75,13 +75,6 @@ add_seed(Seed) :-
   ->  print_message(informational, seed_already_exists)
   ;   throw(E)
   ).
-
-
-
-%! add_url(+Url:atom) is det.
-
-add_url(Url) :-
-  add_seed(_{dataset: _{name: Url, url: Url}, documents: [Url]}).
 
 
 

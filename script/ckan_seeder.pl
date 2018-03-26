@@ -39,37 +39,31 @@
 
 ckan_add_seed(Site, LMod, Package) :-
   Url{name: DName, resources: Resources} :< Package,
-  maplist(ckan_resource_url, Resources, Urls),
-  % organization
+  % .dataset.description
+  Dataset1 = _{'last-modified': LMod, name: DName, url: Url},
+  ckan_description_(Package, Dataset1, Dataset2),
+  % .dataset.license
+  ckan_license_(Package, Dataset2, Dataset3),
+  % .documents
+  maplist(ckan_resource_url_, Resources, Docs),
+  % .organization
   Org1 = _{url: Site},
-  ckan_organization(Package, Org1, Org2),
-  % description
-  Dataset1 = _{name: DName, url: Url},
-  ckan_description(Package, Dataset1, Dataset2),
-  % license
-  ckan_license(Package, Dataset2, Dataset3),
-  add_seed(
-    _{
-      dataset: Dataset3,
-      documents: Urls,
-      'last-modified': LMod,
-      organization: Org2
-    }
-  ).
+  ckan_organization_(Package, Org1, Org2),
+  add_seed(_{dataset: Dataset3, documents: Docs, organization: Org2}).
 
-ckan_description(Package, Dataset1, Dataset2) :-
+ckan_description_(Package, Dataset1, Dataset2) :-
   _{notes: Desc0} :< Package,
   Desc0 \== null, !,
   atom_string(Desc0, Desc),
   Dataset2 = Dataset1.put(_{description: Desc}).
-ckan_description(_, Dataset, Dataset).
+ckan_description_(_, Dataset, Dataset).
 
-ckan_license(Package, Dataset1, Dataset2) :-
+ckan_license_(Package, Dataset1, Dataset2) :-
   _{license_url: License} :< Package, !,
   Dataset2 = Dataset1.put(_{license: License}).
-ckan_license(_, Dataset, Dataset).
+ckan_license_(_, Dataset, Dataset).
 
-ckan_organization(Package, Org1, Org2) :-
+ckan_organization_(Package, Org1, Org2) :-
   is_dict(Package.organization),
   % name
   _{name: OName} :< Package.organization, !,
@@ -78,9 +72,9 @@ ckan_organization(Package, Org1, Org2) :-
   ->  Org2 = Org1.put(_{image: Url, name: OName})
   ;   Org2 = Org1.put(_{name: OName})
   ).
-ckan_organization(_, Org, Org).
+ckan_organization_(_, Org, Org).
 
-ckan_resource_url(Resource, Url) :-
+ckan_resource_url_(Resource, Url) :-
   _{url: Url} :< Resource.
 
 
