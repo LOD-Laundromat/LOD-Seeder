@@ -5,6 +5,7 @@
     delete_seed/1,     % +Seed
     end_seed/1,        % +Seed
     processing_seed/1, % -Seed
+    reset_seed/1,      % +Seed
     seed/1,            % -Seed
     start_seed/1       % -Seed
   ]
@@ -113,6 +114,18 @@ seed(Seed) :-
 
 processing_seed(Seed) :-
   seedlist_request_([seed,processing], [], seed_(Seed), []).
+
+
+
+%! reset_seed(+Seed:dict) is det.
+
+reset_seed(Seed) :-
+  seedlist_request_(
+    [seed,idle],
+    [hash(Seed.hash)],
+    close,
+    [failure(404),method(patch)]
+  ).
 
 
 
