@@ -2,7 +2,7 @@
   ckan_seeder,
   [
     ckan_scrape_site/1,  % ?Site
-    ckan_scrape_sites/1  % +NumThreads
+    ckan_scrape_sites/0
   ]
 ).
 
@@ -228,17 +228,17 @@ rdf_media_type_(media(text/turtle,[])).
 
 
 
-%! ckan_scrape_sites(+NumThreads:nonneg) is det.
+%! ckan_scrape_sites is det.
 
-ckan_scrape_sites(NumThreads) :-
+ckan_scrape_sites :-
   % Store output in log file.
   setting(ll_seeder:data_directory, Dir),
   directory_file_path(Dir, 'out.log', File),
   protocol(File),
   % Scrape all known CKAN sites using the given number of threads.
-  aggregate_all(set(Site), ckan_site_uri(Site), Sites),
-  create_detached_thread(
-    threaded_maplist(NumThreads, ckan_scrape_site, Sites)
+  forall(
+    ckan_site_uri(Site),
+    create_detached_thread(ckan_scrape_site(Site))
   ).
 
 
