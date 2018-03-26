@@ -237,11 +237,14 @@ rdf_media_type_(media(text/turtle,[])).
 %! ckan_scrape_sites(+NumThreads:nonneg) is det.
 
 ckan_scrape_sites(NumThreads) :-
+  % Store output in log file.
+  setting(ll_seeder:data_directory, Dir),
+  directory_file_path(Dir, 'out.log', File),
+  protocol(File),
+  % Scrape all known CKAN sites using the given number of threads.
   aggregate_all(set(Site), ckan_site_uri(Site), Sites),
-  thread_create(
-    threaded_maplist(NumThreads, ckan_scrape_site, Sites),
-    _,
-    [detached(true)]
+  create_detached_thread(
+    threaded_maplist(NumThreads, ckan_scrape_site, Sites)
   ).
 
 
@@ -338,7 +341,7 @@ ckan_format_('rdf-turtle',                media(text/turtle,[])).
 ckan_format_('rdf-xml',                   media(application/'rdf+xml',[])).
 ckan_format_(rdfa,                        media(application/'xhtml+xml',[])).
 ckan_format_(rdfxml,                      media(application/'rdf+xml',[])).
-ckan_format_('rss + xml',                   media(application/'rss+xml',[])).
+ckan_format_('rss + xml',                 media(application/'rss+xml',[])).
 ckan_format_('rss+xml',                   media(application/'rss+xml',[])).
 ckan_format_('sparql-query',              media(application/'sparql-query',[])).
 ckan_format_('sparql-json',               media(application/'sparql-results+json',[])).
