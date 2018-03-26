@@ -15,17 +15,17 @@
 
   * dataset(dict)
     * description(string)
-    * image(atom)
-    * license(atom)
+    * image(uri)
+    * license(uri)
     * name(atom)
-    * url(atom)
-  * documents(list(atom))
+    * url(uri)
+  * documents(list(uri))
   * hash(atom)
   * organization(dict)
     * description(string)
     * name(atom)
-    * image(atom)
-    * url(atom)
+    * image(uri)
+    * url(uri)
 
 @author Wouter Beek
 @version 2018
