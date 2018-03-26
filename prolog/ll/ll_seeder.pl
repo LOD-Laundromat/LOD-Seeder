@@ -3,8 +3,8 @@
   [
     add_seed/1,        % +Seed
     add_url/1,         % +Url
-    delete_seed/1,     % +Hash
-    end_seed/1,        % +Hash
+    delete_seed/1,     % +Seed
+    end_seed/1,        % +Seed
     processing_seed/1, % -Seed
     seed/1,            % -Seed
     start_seed/1       % -Seed
@@ -85,24 +85,24 @@ add_url(Url) :-
 
 
 
-%! delete_seed(+Hash:atom) is det.
+%! delete_seed(+Seed:dict) is det.
 
-delete_seed(Hash) :-
+delete_seed(Seed) :-
   seedlist_request_(
     [seed],
-    [hash(Hash)],
+    [hash(Seed.hash)],
     close,
     [failure(404),method(delete)]
   ).
 
 
 
-%! end_seed(+Hash:atom) is det.
+%! end_seed(+Seed:dict) is det.
 
-end_seed(Hash) :-
+end_seed(Seed) :-
   seedlist_request_(
     [seed,processing],
-    [hash(Hash)],
+    [hash(Seed.hash)],
     close,
     [failure(404),method(patch)]
   ).
