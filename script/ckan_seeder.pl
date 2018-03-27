@@ -48,7 +48,15 @@ ckan_add_seed(Site, LMod, Package) :-
   % .organization
   Org1 = _{url: Site},
   ckan_organization_(Package, Org1, Org2),
-  add_seed(_{dataset: Dataset3, documents: Docs, organization: Org2}).
+  format(atom(Approach), "ckan ~a", [Site]),
+  add_seed(
+    _{
+      approach: Approach,
+      dataset: Dataset3,
+      documents: Docs,
+      organization: Org2
+    }
+  ).
 
 ckan_description_(Package, Dataset1, Dataset2) :-
   _{notes: Desc0} :< Package,
