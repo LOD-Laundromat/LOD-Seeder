@@ -1,0 +1,47 @@
+[
+  {
+    "dataset": {
+      "description": "The World Factbook provides information on the history, people, government, economy, geography, communications, transportation, military, and transnational issues for 267 world entities.  Our Reference tab includes: maps of the major world regions, as well as Flags of the World, a Physical Map of the World, a Political Map of the World, a World Oceans map, and a Standard Time Zones of the World map.",
+      "name": "cia-world-factbook"
+    },
+    "documents": ["http://simile.mit.edu/repository/datasets/cia-wfb/data/cia-wfb.zip"],
+    "organization": {"name": "cia", "url": "http://simile.mit.edu"}
+  },
+  {
+    "dataset": {
+      "description": "This is one of several semantic repositories that contains and publishes RDF linked data and co-reference information, forming the underlying distributed storage model behind the RKB Explorer initiative.  This repository contains data from CiteSeer (Research Index).",
+      "name": "citeseer"
+    },
+    "documents": ["http://citeseer.rkbexplorer.com/sitemap.xml"],
+    "organization": {"name": "citeseer"}
+  },
+  {
+    "dataset": {
+      "description": "A set of resources describes concepts and individuals related to the canon of Western Classical Music.  The data is aggregated and to hand curated by Chris Cannam at Queen Mary University of London.  It includes information about composers, compositions, performers, relationships of influence, and other data.  The intention is to provide a Linked Data resource that provides references to existing information sources.",
+      "name": "dbtune-classical"
+    },
+    "documents": ["https://c4dm.eecs.qmul.ac.uk/rdr/bitstream/handle/123456789/41/classical.tar.gz"],
+    "organization": {"name": "dbtunes"}
+  },
+  {
+    "dataset": {
+      "description": "Some of the MIT OpenCourseWare Material RDF-ized by the SIMILE Team.",
+      "name": "open-course-ware"
+    },
+    "documents": ["http://simile.mit.edu/repository/datasets/ocw/data/ocw.zip"],
+    "organization": {"name": "mit", "url": "http://simile.mit.edu"}
+  },
+  {
+    "dataset": {"name": "w3c-technical-reports"},
+    "documents": ["http://simile.mit.edu/repository/datasets/w3c-tr/data/w3c-tr.zip"],
+    "organization": {"name": "mit", "url": "http://simile.mit.edu"}
+  },
+  {
+    "dataset": {
+      "description": "WordNet is a large lexical database of English.  Nouns, verbs, adjectives and adverbs are grouped into sets of cognitive synonyms (synsets), each expressing a distinct concept.  Synsets are interlinked by means of conceptual-semantic and lexical relations.  WordNet's structure makes it a useful tool for computational linguistics and natural language processing.",
+      "name": "wordnet"
+    },
+    "documents": ["http://simile.mit.edu/repository/datasets/wordnet/data/wordnet.zip"],
+    "organization": {"name": "mit", "url": "http://simile.mit.edu"}
+  }
+]
