@@ -7,6 +7,7 @@
     processing_seed/1, % -Seed
     reset_seed/1,      % +Seed
     seed/1,            % -Seed
+    seed_by_hash/2,    % +Hash, -Seed
     start_seed/1       % -Seed
   ]
 ).
@@ -108,6 +109,13 @@ end_seed(Seed) :-
 
 seed(Seed) :-
   seedlist_request_([seed], _, seed_(Seed), []).
+
+
+
+%! seed_by_hash(+Hash:atom, -Seed:dict) is det.
+
+seed_by_hash(Hash, Seed) :-
+  seedlist_request_([seed], [hash(Hash)], seed_(Seed), []).
 
 
 
