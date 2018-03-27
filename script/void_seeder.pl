@@ -35,25 +35,24 @@
 
 
 run :-
-  dataset_metadata(OName, DName, Node, Triples),
-  maplist(writeln, Triples),
-  run_(OName, DName, Node, Triples).
-
-run_(OName, DName, Node, Triples) :-
-  seed_documents(Triples, Docs),
-  Docs \== [],
-  seed_dataset(Triples, Dataset),
-  Seed1 = _{approach: Approach, dataset: Dataset, documents: Docs},
-  (   seed_organization(OName, DName, Triples, Org)
-  ->  Seed2 = Seed1.put(_{organization: Org})
-  ;   Seed2 = Seed1
-  ),
-  format(atom(Approach), "VoID ~a/~a ~a", [OName,DName,Node]),
-  %add_seed(Seed2),
-  writeln(Seed2), !.
-run_(OName, DName, Node, Triples) :-
-  gtrace,
-  run_(OName, DName, Node, Triples).
+  forall(
+    dataset_metadata(OName, DName, Node, Triples),
+    (   seed_documents(Triples, Docs),
+        Docs \== [],
+        seed_dataset(Triples, Dataset),
+        Seed1 = _{approach: Approach, dataset: Dataset, documents: Docs},
+        (   seed_organization(OName, DName, Triples, Org)
+        ->  Seed2 = Seed1.put(_{organization: Org})
+        ;   Seed2 = Seed1
+        ),
+        format(atom(Approach), "VoID ~a/~a ~a", [OName,DName,Node]),
+        add_seed(Seed2)
+    ->  format("✓"),
+        flush_output(user_output)
+    ;   format("❌"),
+        flush_output(user_output)
+    )
+  ).
 
 
 
@@ -103,12 +102,18 @@ seed_dataset_description_(Triples, Dict1, Dict2) :-
   Dict2 = Dict1.put(_{description: Desc}).
 seed_dataset_description_(_, Dict, Dict).
 
-% dct:license, wv:norms, wv:waiver
+% dct:license, dct:rights, wv:norms, wv:waiver
 seed_dataset_license_(Triples, Dict1, Dict2) :-
-  rdf_prefix_member(P, [dct:license,wv:norms,wv:waiver]),
-  rdf_prefix_member(rdf(_,P,License), Triples), !,
+  rdf_prefix_member(P, [dct:license,dct:rights,wv:norms,wv:waiver]),
+  rdf_prefix_member(rdf(_,P,Term), Triples), !,
+  rdf_atom_(Term, License),
   Dict2 = Dict1.put(_{license: License}).
 seed_dataset_license_(_, Dict, Dict).
+
+rdf_atom_(Literal, Lex) :-
+  rdf_is_literal(Literal), !,
+  rdf_literal_lexical_form(Literal, Lex).
+rdf_atom_(Iri, Iri).
 
 % dct:title, rdfs:label
 seed_dataset_name_(Triples, Name) :-
@@ -153,6 +158,7 @@ seed_last_modified(Triples, LMod) :-
     LMod
   ).
 
+date_time_(date(Y,Mo,D), date(Y,Mo,D,0,0,0.0)).
 date_time_(date_time(Y,Mo,D,H,Mi,S), date(Y,Mo,D,H,Mi,S)).
 
 
