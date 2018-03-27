@@ -13,6 +13,7 @@
 
 /** <module> LOD Laundromat seeder
 
+  * approach(atom) REQUIRED
   * dataset(dict)
     * description(string)
     * image(uri)
