@@ -35,37 +35,53 @@
 
 
 run :-
-  dataset_metadata(OName, DName, Triples),
+  dataset_metadata(OName, DName, Node, Triples),
   maplist(writeln, Triples),
+  run_(OName, DName, Node, Triples).
+
+run_(OName, DName, Node, Triples) :-
   seed_documents(Triples, Docs),
   Docs \== [],
   seed_dataset(Triples, Dataset),
-  seed_organization(OName, DName, Triples, Org),
-  add_seed(_{dataset: Dataset, documents: Docs, organization: Org}).
+  Seed1 = _{approach: Approach, dataset: Dataset, documents: Docs},
+  (   seed_organization(OName, DName, Triples, Org)
+  ->  Seed2 = Seed1.put(_{organization: Org})
+  ;   Seed2 = Seed1
+  ),
+  format(atom(Approach), "VoID ~a/~a ~a", [OName,DName,Node]),
+  %add_seed(Seed2),
+  writeln(Seed2), !.
+run_(OName, DName, Node, Triples) :-
+  gtrace,
+  run_(OName, DName, Node, Triples).
 
 
 
-%! dataset_metadata(-OName:atom, -DName:atom,
+%! dataset_metadata(-OName:atom, -DName:atom, -Node:rdf_nonliteral,
 %!                  -Triples:ordset(rdf_triple)) is nondet.
 
 % void:Dataset, void:Linkset
-dataset_metadata(OName, DName, Triples) :-
-  distinct([OName,DName,S], dataset_(OName, DName, S)),
-  findall(Triple, cbd(OName, DName, S, Triple), Triples).
+dataset_metadata(OName, DName, Node, Triples) :-
+  distinct([OName,DName,Node], dataset_node(OName, DName, Node)),
+  findall(Triple, cbd(OName, DName, Node, Triple), Triples).
 
-dataset_(OName, DName, S) :-
+
+
+%! dataset_node(-OName:atom, -DName:atom, -Node:rdf_nonliteral) is nondet.
+
+dataset_node(OName, DName, Node) :-
   dataset(OName, DName, _),
   (   % Instance of a VoID class.
       rdf_prefix_member(C, [void:'Dataset',void:'Linkset']),
-      statement(OName, DName, S, rdf:type, C)
+      statement(OName, DName, Node, rdf:type, C)
   ;   % Domain of a VoID property.
       rdf_prefix_member(
         P,
         [void:dataDump,void:documents,void:sparqlEndpoint,void:subset]
       ),
-      statement(OName, DName, S, P, _)
+      statement(OName, DName, Node, P, _)
   ;   % Range of a VoID property.
-      statement(OName, DName, _, void:subset, S)
+      statement(OName, DName, _, void:subset, Node)
   ).
 
 
@@ -91,7 +107,6 @@ seed_dataset_description_(_, Dict, Dict).
 seed_dataset_license_(Triples, Dict1, Dict2) :-
   rdf_prefix_member(P, [dct:license,wv:norms,wv:waiver]),
   rdf_prefix_member(rdf(_,P,License), Triples), !,
-  writeln(license-License),%DEB
   Dict2 = Dict1.put(_{license: License}).
 seed_dataset_license_(_, Dict, Dict).
 
@@ -105,7 +120,6 @@ seed_dataset_name_(Triples, Name) :-
 seed_dataset_url_(Triples, Dict1, Dict2) :-
   rdf_prefix_member(P, [foaf:homepage,foaf:page,dct:source,foaf:mbox]),
   rdf_prefix_member(rdf(_,P,Url), Triples), !,
-  writeln(url-Url),%DEB
   Dict2 = Dict1.put(_{url: Url}).
 seed_dataset_url_(_, Dict, Dict).
 
@@ -129,17 +143,22 @@ seed_last_modified(Triples, LMod) :-
   aggregate_all(
     min(LMod),
     (   rdf_prefix_member(P, [dct:modified,dct:issued,dct:created,dct:date]),
-        rdf_prefix_member(rdf(_,P,LMod0), Triples),
-        rdf_literal_value(LMod0, LMod)
+        rdf_prefix_member(rdf(_,P,Literal), Triples),
+        rdf_literal_value(Literal, Xsd),
+        gtrace,
+        date_time_(Xsd, Pl),
+        date_time_stamp(Pl, LMod)
     ;   LMod = 0.0
     ),
     LMod
   ).
 
+date_time_(date_time(Y,Mo,D,H,Mi,S), date(Y,Mo,D,H,Mi,S)).
+
 
 
 %! seed_organization(+OName:atom, +DName:atom, +Triples:ordset(rdf_triple),
-%!                   -Organization:dict) is det.
+%!                   -Organization:dict) is semidet.
 
 % dct:publisher, dct:creator, dct:contributor
 seed_organization(OName, DName, Triples, Dict2) :-
@@ -154,4 +173,4 @@ seed_organization(OName, DName, Triples, Dict2) :-
       ->  Dict2 = Dict1.put(_{url: Url})
       ;   Dict2 = Dict1
       )
-  ).
+  ), !.
