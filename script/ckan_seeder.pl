@@ -23,7 +23,6 @@
 :- use_module(library(counter)).
 :- use_module(library(dcg)).
 :- use_module(library(http/ckan_api)).
-:- use_module(library(http/http_client2)).
 :- use_module(library(ll/ll_seeder)).
 :- use_module(library(media_type)).
 :- use_module(library(thread_ext)).
@@ -38,9 +37,9 @@
 %! ckan_add_seed(+Site:atom, +LMod:float, +Package:dict) is det.
 
 ckan_add_seed(Site, LMod, Package) :-
-  Url{name: DName, resources: Resources} :< Package,
+  _{name: DName, resources: Resources} :< Package,
   % .dataset.description
-  Dataset1 = _{'last-modified': LMod, name: DName, url: Url},
+  Dataset1 = _{'last-modified': LMod, name: DName},
   ckan_description_(Package, Dataset1, Dataset2),
   % .dataset.license
   ckan_license_(Package, Dataset2, Dataset3),
@@ -192,9 +191,7 @@ ckan_resource_last_modified_(Resource, LMod) :-
 ckan_resource_last_modified_(Resource, LMod) :-
   _{created: Str} :< Resource,
   parse_time(Str, iso_8601, LMod), !.
-ckan_resource_last_modified_(Resource, LMod) :-
-  _{url: Url} :< Resource,
-  http_metadata_last_modified(Url, LMod).
+
 
 
 

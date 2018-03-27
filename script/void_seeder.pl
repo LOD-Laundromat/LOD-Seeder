@@ -39,7 +39,7 @@ run :-
   maplist(writeln, Triples),
   seed_documents(Triples, Docs),
   Docs \== [],
-  seed_dataset(Triples, Docs, Dataset),
+  seed_dataset(Triples, Dataset),
   seed_organization(OName, DName, Triples, Org),
   add_seed(_{dataset: Dataset, documents: Docs, organization: Org}).
 
@@ -70,11 +70,10 @@ dataset_(OName, DName, S) :-
 
 
 
-%! seed_dataset(+Triples:ordset(rdf_triple), +Docs:ordset(atom),
-%!              -Dataset:dict) is det.
+%! seed_dataset(+Triples:ordset(rdf_triple), -Dataset:dict) is det.
 
-seed_dataset(Triples, Docs, Dict4) :-
-  seed_last_modified(Triples, Docs, LMod),
+seed_dataset(Triples, Dict4) :-
+  seed_last_modified(Triples, LMod),
   seed_dataset_name_(Triples, Name),
   Dict1 = _{'last-modified': LMod, name: Name},
   seed_dataset_description_(Triples, Dict1, Dict2),
@@ -124,26 +123,18 @@ seed_documents(Triples, Urls) :-
 
 
 
-%! seed_last_modified(+Triples:ordset(rdf_triple), +Urls:ordset(atom),
-%!                    -LMod:float) is det.
+%! seed_last_modified(+Triples:ordset(rdf_triple), -LMod:float) is det.
 
-seed_last_modified(Triples, Urls, LMod) :-
+seed_last_modified(Triples, LMod) :-
   aggregate_all(
     min(LMod),
-    (   seed_last_modified_(Triples, LMod)
-    ;   member(Url, Urls),
-        http_metadata_last_modified(Url, LMod)
+    (   rdf_prefix_member(P, [dct:modified,dct:issued,dct:created,dct:date]),
+        rdf_prefix_member(rdf(_,P,LMod0), Triples),
+        rdf_literal_value(LMod0, LMod)
     ;   LMod = 0.0
     ),
     LMod
   ).
-
-% dct:modified, dct:issues, dct:created, dct:date
-seed_last_modified_(Triples, LMod) :-
-  rdf_prefix_member(P, [dct:modified,dct:issued,dct:created,dct:date]),
-  rdf_prefix_member(rdf(_,P,LMod0), Triples),
-  rdf_literal_value(LMod0, LMod), !,
-  writeln(LMod).
 
 
 
