@@ -50,6 +50,7 @@ run :-
     ->  format("✓"),
         flush_output(user_output)
     ;   format("❌"),
+        maplist(writeln, Triples),
         flush_output(user_output)
     )
   ).

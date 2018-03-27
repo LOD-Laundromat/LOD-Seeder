@@ -1,6 +1,7 @@
 :- module(
   ckan_seeder,
   [
+    ckan_scrape_file/1,  % +File
     ckan_scrape_site/1,  % ?Site
     ckan_scrape_sites/0
   ]
@@ -16,12 +17,14 @@
 :- use_module(library(apply)).
 :- use_module(library(error)).
 :- use_module(library(filesex)).
+:- use_module(library(http/json)).
 :- use_module(library(lists)).
 :- use_module(library(yall)).
 
 :- use_module(library(atom_ext)).
 :- use_module(library(counter)).
 :- use_module(library(dcg)).
+:- use_module(library(file_ext)).
 :- use_module(library(http/ckan_api)).
 :- use_module(library(ll/ll_seeder)).
 :- use_module(library(media_type)).
@@ -169,10 +172,30 @@ file_name_--> "".
 
 
 
+%! ckan_scrape_file(+File:atom) is det.
+
+ckan_scrape_file(File) :-
+  call_stream_file(File, ckan_scrape_stream).
+
+ckan_scrape_stream(In) :-
+  json_read_dict(In, Packages),
+  forall(
+    (
+      member(Package, Packages),
+      ckan_package_(file, LMod, Package)
+    ),
+    ckan_add_seed(file, LMod, Package)
+  ).
+
+
+
 %! ckan_scrape_package(+Site:atom, -LMod:float, -Package:dict) is nondet.
 
 ckan_scrape_package(Site, LMod, Package) :-
   ckan_package(Site, Package),
+  ckan_package_(Site, LMod, Package).
+
+ckan_package_(Site, LMod, Package) :-
   (   % The dataset contains at least one RDF document.
       ckan_package_media_types(Site, Package, _, MediaTypes),
       member(MediaType, MediaTypes),
@@ -199,7 +222,6 @@ ckan_resource_last_modified_(Resource, LMod) :-
 ckan_resource_last_modified_(Resource, LMod) :-
   _{created: Str} :< Resource,
   parse_time(Str, iso_8601, LMod), !.
-
 
 
 
