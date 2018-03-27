@@ -21,5 +21,9 @@
 
 add_url(Url) :-
   add_seed(
-    _{dataset: _{'last-modified': 0.0, name: Url, url: Url}, documents: [Url]}
+    _{
+      approach: url_seeder,
+      dataset: _{'last-modified': 0.0, name: Url, url: Url},
+      documents: [Url]
+    }
   ).
